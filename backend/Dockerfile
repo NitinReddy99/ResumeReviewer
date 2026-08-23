@@ -1,13 +1,29 @@
+# Build stage
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+
+WORKDIR /app
+
+# Copy Maven configuration
+COPY pom.xml .
+
+# Download dependencies
+RUN mvn dependency:go-offline
+
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+
+# Run stage
 FROM eclipse-temurin:21-jdk
 
 WORKDIR /app
 
-COPY . .
-
-RUN chmod +x mvnw
-
-RUN ./mvnw clean package -DskipTests
+# Copy generated JAR file
+COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-CMD sh -c "java -jar target/*.jar"
+ENTRYPOINT ["java", "-jar", "app.jar"]

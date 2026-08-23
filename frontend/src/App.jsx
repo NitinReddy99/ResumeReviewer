@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 
-const sampleResume = `Nitin Reddy
+const sampleResume = `Rahul Sharma
 B.Tech Computer Science
 
 Skills:
@@ -20,9 +20,14 @@ REST API
 Git
 AWS experience.`
 
+
+// ==========================================
+// BACKEND API URL
+// ==========================================
+
 const api =
   import.meta.env.VITE_API_URL ||
-  'http://localhost:8080'
+  'https://resume-reviewer-backend-lw7h.onrender.com'
 
 
 export default function App() {
@@ -49,11 +54,40 @@ export default function App() {
     useState('')
 
 
+  // ==========================================
+  // SINGLE CANDIDATE ANALYSIS
+  // ==========================================
+
   async function analyze() {
 
+    if (!resume.trim()) {
+
+      setError(
+        'Please enter candidate profile information.'
+      )
+
+      return
+    }
+
+
+    if (!jobDescription.trim()) {
+
+      setError(
+        'Please enter role requirements.'
+      )
+
+      return
+    }
+
+
     setLoading(true)
+
     setError('')
+
     setBatch(null)
+
+    setResult(null)
+
 
     try {
 
@@ -77,14 +111,27 @@ export default function App() {
         )
 
 
-      const json =
-        await response.json()
+      let json
+
+
+      try {
+
+        json =
+          await response.json()
+
+      } catch {
+
+        throw new Error(
+          'Invalid response from analysis service'
+        )
+      }
 
 
       if (!response.ok) {
 
         throw new Error(
           json.message ||
+          json.error ||
           'Analysis service unavailable'
         )
       }
@@ -95,12 +142,24 @@ export default function App() {
 
     } catch (e) {
 
-      console.error(e)
+      console.error(
+        'Analysis error:',
+        e
+      )
+
 
       setError(
-        e.message ||
-        'Something went wrong'
+
+        e.message === 'Failed to fetch'
+
+          ? 'Unable to connect to the backend. Please wait a few seconds and try again.'
+
+          : (
+              e.message ||
+              'Something went wrong'
+            )
       )
+
 
     } finally {
 
@@ -108,6 +167,10 @@ export default function App() {
     }
   }
 
+
+  // ==========================================
+  // MULTIPLE CANDIDATE ANALYSIS
+  // ==========================================
 
   async function analyzeBatch() {
 
@@ -121,11 +184,23 @@ export default function App() {
     }
 
 
+    if (!jobDescription.trim()) {
+
+      setError(
+        'Please enter role requirements first.'
+      )
+
+      return
+    }
+
+
     setLoading(true)
 
     setError('')
 
     setResult(null)
+
+    setBatch(null)
 
 
     try {
@@ -135,6 +210,7 @@ export default function App() {
 
 
       files.forEach(file =>
+
         data.append(
           'files',
           file
@@ -158,14 +234,27 @@ export default function App() {
         )
 
 
-      const json =
-        await response.json()
+      let json
+
+
+      try {
+
+        json =
+          await response.json()
+
+      } catch {
+
+        throw new Error(
+          'Invalid response from batch analysis service'
+        )
+      }
 
 
       if (!response.ok) {
 
         throw new Error(
           json.message ||
+          json.error ||
           'Batch analysis failed'
         )
       }
@@ -176,12 +265,24 @@ export default function App() {
 
     } catch (e) {
 
-      console.error(e)
+      console.error(
+        'Batch analysis error:',
+        e
+      )
+
 
       setError(
-        e.message ||
-        'Batch analysis failed'
+
+        e.message === 'Failed to fetch'
+
+          ? 'Unable to connect to the backend. Please wait a few seconds and try again.'
+
+          : (
+              e.message ||
+              'Batch analysis failed'
+            )
       )
+
 
     } finally {
 
@@ -203,6 +304,8 @@ export default function App() {
   return (
 
     <main>
+
+      {/* ================= HERO ================= */}
 
       <section className="hero">
 
@@ -229,8 +332,11 @@ export default function App() {
               DECISION INTELLIGENCE FOR HIRING
             </p>
 
+
             <h1>
+
               Find the signal.
+
               <br />
 
               <em>
@@ -238,6 +344,7 @@ export default function App() {
               </em>
 
             </h1>
+
 
             <p className="subtitle">
 
@@ -257,14 +364,17 @@ export default function App() {
               SCREENING ENGINE
             </span>
 
+
             <strong>
               Ollama AI matching
             </strong>
 
+
             <p>
               Skills, experience and education
-              signals summarized using a local LLM.
+              signals summarized using AI.
             </p>
+
 
             <div className="pulse">
 
@@ -281,7 +391,12 @@ export default function App() {
       </section>
 
 
+      {/* ================= INPUT SECTION ================= */}
+
       <section className="workspace">
+
+
+        {/* CANDIDATE PROFILE */}
 
         <div className="input-card">
 
@@ -290,6 +405,7 @@ export default function App() {
             <span>
               01
             </span>
+
 
             <h2>
               Candidate profile
@@ -303,7 +419,9 @@ export default function App() {
             value={resume}
 
             onChange={e =>
-              setResume(e.target.value)
+              setResume(
+                e.target.value
+              )
             }
 
           />
@@ -317,6 +435,8 @@ export default function App() {
         </div>
 
 
+        {/* ROLE REQUIREMENTS */}
+
         <div className="input-card">
 
           <div className="card-head">
@@ -324,6 +444,7 @@ export default function App() {
             <span>
               02
             </span>
+
 
             <h2>
               Role requirements
@@ -354,6 +475,8 @@ export default function App() {
         </div>
 
 
+        {/* ANALYZE BUTTON */}
+
         <button
 
           className="analyze"
@@ -366,9 +489,12 @@ export default function App() {
 
           {
             loading
+
               ? 'Analyzing signals...'
+
               : 'Analyze candidate'
           }
+
 
           <b>
             →
@@ -376,6 +502,8 @@ export default function App() {
 
         </button>
 
+
+        {/* ERROR */}
 
         {
           error &&
@@ -387,10 +515,14 @@ export default function App() {
           </div>
         }
 
+
       </section>
 
 
+      {/* ================= BATCH SECTION ================= */}
+
       <section className="batch-zone">
+
 
         <div>
 
@@ -398,9 +530,11 @@ export default function App() {
             MULTI-CANDIDATE MODE
           </p>
 
+
           <h2>
             Rank an entire candidate pool.
           </h2>
+
 
           <p>
             Upload multiple PDF or text
@@ -410,6 +544,8 @@ export default function App() {
 
         </div>
 
+
+        {/* FILE UPLOAD */}
 
         <label className="upload">
 
@@ -422,9 +558,11 @@ export default function App() {
             accept=".pdf,.txt"
 
             onChange={e =>
+
               setFiles(
                 [...e.target.files]
               )
+
             }
 
           />
@@ -434,8 +572,10 @@ export default function App() {
 
             {
               files.length
+
                 ? files.length +
                   ' resumes selected'
+
                 : 'Choose resumes'
             }
 
@@ -449,6 +589,8 @@ export default function App() {
         </label>
 
 
+        {/* BATCH BUTTON */}
+
         <button
 
           className="batch-btn"
@@ -461,7 +603,9 @@ export default function App() {
 
           {
             loading
+
               ? 'Ranking candidates...'
+
               : 'Build shortlist'
           }
 
@@ -470,6 +614,8 @@ export default function App() {
       </section>
 
 
+      {/* ================= SINGLE RESULT ================= */}
+
       {
         result &&
 
@@ -477,15 +623,18 @@ export default function App() {
 
           <div className="result-top">
 
+
             <div>
 
               <p className="eyebrow">
                 SCREENING RESULT
               </p>
 
+
               <h2>
                 {result.candidate}
               </h2>
+
 
               <p>
                 {result.summary}
@@ -505,6 +654,7 @@ export default function App() {
                   {result.score}
                 </strong>
 
+
                 <span>
                   /100
                 </span>
@@ -522,14 +672,17 @@ export default function App() {
               Recommendation
             </span>
 
+
             <strong>
               {result.recommendation}
             </strong>
+
 
             <p>
 
               Experience:
               {' '}
+
               {result.experience}
 
               {' · '}
@@ -543,23 +696,39 @@ export default function App() {
 
           <div className="signal-grid">
 
+
             <Signal
+
               title="Matched signals"
+
               items={result.matchedSkills}
+
               type="good"
+
             />
 
+
             <Signal
+
               title="Potential gaps"
+
               items={result.missingSkills}
+
               type="gap"
+
             />
 
+
             <Signal
+
               title="Resume inventory"
+
               items={result.extractedSkills}
+
               type="neutral"
+
             />
+
 
           </div>
 
@@ -567,18 +736,23 @@ export default function App() {
       }
 
 
+      {/* ================= BATCH RESULT ================= */}
+
       {
         batch &&
 
         <section className="ranking">
 
+
           <div className="ranking-head">
+
 
             <div>
 
               <p className="eyebrow">
                 SHORTLIST
               </p>
+
 
               <h2>
 
@@ -603,13 +777,14 @@ export default function App() {
 
 
           {
-            batch.candidates.map(
+            batch.candidates?.map(
               (c, i) =>
 
                 <article
                   className="candidate"
-                  key={c.id}
+                  key={c.id || i}
                 >
+
 
                   <div className="rank">
 
@@ -626,6 +801,7 @@ export default function App() {
                     <strong>
                       {c.name}
                     </strong>
+
 
                     <small>
 
@@ -654,6 +830,7 @@ export default function App() {
                             {skill}
 
                           </span>
+
                         )
                     }
 
@@ -666,11 +843,13 @@ export default function App() {
                       {c.score}
                     </strong>
 
+
                     <span>
                       {c.recommendation}
                     </span>
 
                   </div>
+
 
                 </article>
             )
@@ -680,6 +859,8 @@ export default function App() {
       }
 
 
+      {/* ================= FOOTER ================= */}
+
       <footer>
 
         ResumeReviewer · React +
@@ -688,10 +869,15 @@ export default function App() {
 
       </footer>
 
+
     </main>
   )
 }
 
+
+// ==========================================
+// SIGNAL COMPONENT
+// ==========================================
 
 function Signal({
   title,
@@ -726,11 +912,14 @@ function Signal({
                   {item}
 
                 </span>
+
               )
 
-            : <p>
-                No signals detected
-              </p>
+            : (
+                <p>
+                  No signals detected
+                </p>
+              )
         }
 
       </div>
